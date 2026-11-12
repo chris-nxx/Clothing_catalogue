@@ -4,8 +4,11 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from response_models import ProductDetail, ProductSummary, Category, Audience, Material, Size, Mall
 
 app = FastAPI()
+app.mount("/images", StaticFiles(directory="images"), name="images")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 load_dotenv()
 
@@ -21,7 +24,7 @@ def get_connection():
 
     return conn
 
-@app.get("/products")
+@app.get("/products", response_model=list[ProductSummary])
 def get_products(max_price: float|None = None,
                  category_id:int|None = None,
                  audience_id:int|None = None,
@@ -113,7 +116,7 @@ def get_products(max_price: float|None = None,
 
     return rows
 
-@app.get("/product/{product_id}")
+@app.get("/product/{product_id}", response_model=ProductDetail)
 def get_product(product_id):
 
     conn = get_connection()
@@ -175,7 +178,7 @@ def get_product(product_id):
     return product
 
 
-@app.get("/categories")
+@app.get("/categories", response_model=list[Category])
 def get_categories():
 
     conn = get_connection()
@@ -198,7 +201,7 @@ def get_categories():
 
     return categories_rows
 
-@app.get("/audiences")
+@app.get("/audiences", response_model=list[Audience])
 def get_audiences():
 
     conn = get_connection()
@@ -220,7 +223,7 @@ def get_audiences():
 
     return audience_rows
 
-@app.get("/materials")
+@app.get("/materials", response_model=list[Material])
 def get_materials():
 
     conn = get_connection()
@@ -242,7 +245,7 @@ def get_materials():
 
     return materials_rows
 
-@app.get("/sizes")
+@app.get("/sizes", response_model=list[Size])
 def get_sizes():
 
     conn = get_connection()
@@ -264,7 +267,7 @@ def get_sizes():
 
     return sizes_rows
 
-@app.get("/malls")
+@app.get("/malls", response_model=list[Mall])
 def get_malls():
 
     conn = get_connection()
