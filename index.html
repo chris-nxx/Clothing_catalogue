@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ATELIER — Multi-Mall Fashion Marketplace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Playfair Display', 'serif'],
+          },
+          colors: {
+            brand: {
+              50: '#faf9f6',
+              100: '#f3f0e8',
+              800: '#1c1917',
+              900: '#0c0a09',
+              accent: '#b45309'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #faf9f6; color: #1c1917; }
+    .fade-in { animation: fadeIn 0.25s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f3f0e8; }
+    ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-amber-800 selection:text-white">
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden transform transition-all duration-300">
+    <div id="toast-inner" class="px-5 py-3 rounded-lg shadow-xl text-sm font-medium text-white flex items-center gap-2"></div>
+  </div>
+
+  <!-- Navbar -->
+  <header class="sticky top-0 z-40 bg-brand-50/90 backdrop-blur-md border-b border-stone-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-8">
+        <a href="#" onclick="switchView('shop')" class="font-serif text-2xl tracking-tight font-semibold text-stone-900">
+          ATELIER<span class="text-amber-700">.</span>
+        </a>
+        <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-stone-600">
+          <button onclick="switchView('shop')" id="nav-shop" class="text-stone-900 border-b-2 border-stone-900 py-5 transition">Collection</button>
+          <button onclick="switchView('stores')" id="nav-stores" class="hover:text-stone-900 py-5 transition">Malls & Stores</button>
+          <button onclick="switchView('dashboard')" id="nav-dashboard" class="hidden hover:text-stone-900 py-5 transition text-amber-800 font-semibold">
+            Merchant Portal
+          </button>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div id="auth-user-badge" class="hidden items-center gap-3">
+          <span id="user-role-pill" class="text-xs uppercase tracking-wider px-2.5 py-1 rounded-full bg-stone-200 text-stone-800 font-semibold"></span>
+          <button onclick="logout()" class="text-sm text-stone-600 hover:text-stone-900 font-medium px-3 py-1.5 rounded-md hover:bg-stone-200/60 transition">
+            Sign Out
+          </button>
+        </div>
+        <button id="btn-open-login" onclick="openModal('login-modal')" class="text-sm font-medium bg-stone-900 text-white px-4 py-2 rounded-full hover:bg-stone-800 transition shadow-sm">
+          Partner Login
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== VIEW 1: PUBLIC SHOP ==================== -->
+  <main id="view-shop" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 fade-in">
+    <!-- Hero Banner -->
+    <div class="mb-8 pb-8 border-b border-stone-200 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div>
+        <p class="text-xs uppercase tracking-widest text-amber-800 font-semibold mb-1">Curated Mall Boutiques</p>
+        <h1 class="font-serif text-3xl sm:text-4xl text-stone-900">Discover Local Fashion</h1>
+      </div>
+      <div class="relative w-full md:w-80">
+        <input type="text" id="filter-search" placeholder="Search garments, styles..."
+               class="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-300 rounded-full text-sm focus:outline-none focus:border-stone-900 transition"
+               oninput="debouncedFetchProducts()">
+        <svg class="w-4 h-4 text-stone-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Sidebar Filters -->
+      <aside class="w-full lg:w-64 shrink-0 space-y-5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-stone-500">Filters</h2>
+          <button onclick="resetFilters()" class="text-xs text-amber-800 hover:underline font-medium">Reset all</button>
+        </div>
+
+        <div class="space-y-4 bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Mall Location</label>
+            <select id="filter-mall" onchange="fetchProducts()" class="w-full text-sm bg-stone-50 border border-stone-200 rounded-lg p-2 focus:outline-none focus:border-stone-800">
+              <option value="">All Malls</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Boutique / Store</label>
+            <select id="filter-store" onchange="fetchProducts()" class="w-full text-sm bg-stone-50 border border-stone-200 rounded-lg p-2 focus:outline-none focus:border-stone-800">
+              <option value="">All Stores</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Category</label>
+            <select id="filter-category" onchange="fetchProducts()" class="w-full text-sm bg-stone-50 border border-stone-200 rounded-lg p-2 focus:outline-none focus:border-stone-800">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Audience</label>
+            <select id="filter-audience" onchange="fetchProducts()" class="w-full text-sm bg-stone-50 border border-stone-200 rounded-lg p-2 focus:outline-none focus:border-stone-800">
+              <option value="">Everyone</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Material</label>
+            <select id="filter-material" onchange="fetchProducts()" class="w-full text-sm bg-stone-50 border border-stone-200 rounded-lg p-2 focus:outline-none focus:border-stone-800">
+              <option value="">Any Material</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">In-Stock Size</label>
+            <select id="filter-size" onchange="fetchProducts()" class="w-full text-sm bg-stone-50 border border-stone-200 rounded-lg p-2 focus:outline-none focus:border-stone-800">
+              <option value="">Any Size</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Price Range (KES)</label>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="number" id="filter-min-price" placeholder="Min" onchange="fetchProducts()" class="w-full text-sm bg-stone-50 border border-stone-200 rounded-lg p-2">
+              <input type="number" id="filter-max-price" placeholder="Max" onchange="fetchProducts()" class="w-full text-sm bg-stone-50 border border-stone-200 rounded-lg p-2">
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Product Grid -->
+      <div class="flex-1">
+        <div class="flex items-center justify-between mb-4">
+          <p id="results-count" class="text-sm text-stone-500">Loading collection...</p>
+        </div>
+
+        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Products injected here -->
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-10 flex items-center justify-center gap-4">
+          <button id="btn-prev" onclick="changePage(-1)" disabled class="px-4 py-2 text-sm font-medium rounded-full border border-stone-300 bg-white disabled:opacity-40 hover:bg-stone-100 transition">
+            ← Previous
+          </button>
+          <span id="page-indicator" class="text-sm text-stone-600 font-medium">Page 1</span>
+          <button id="btn-next" onclick="changePage(1)" class="px-4 py-2 text-sm font-medium rounded-full border border-stone-300 bg-white disabled:opacity-40 hover:bg-stone-100 transition">
+            Next →
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== VIEW 2: STORES & MALLS ==================== -->
+  <main id="view-stores" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 fade-in">
+    <div class="mb-8">
+      <p class="text-xs uppercase tracking-widest text-amber-800 font-semibold mb-1">Directory</p>
+      <h1 class="font-serif text-3xl text-stone-900">Partner Stores & Malls</h1>
+    </div>
+    <div id="stores-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Stores injected here -->
+    </div>
+  </main>
+
+  <!-- ==================== VIEW 3: OWNER / ADMIN DASHBOARD ==================== -->
+  <main id="view-dashboard" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 fade-in">
+    <!-- Store Owner Section -->
+    <div id="owner-panel" class="hidden">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-stone-200">
+        <div>
+          <p class="text-xs uppercase tracking-widest text-amber-800 font-semibold mb-1">Store Management</p>
+          <h1 class="font-serif text-3xl text-stone-900" id="owner-store-title">My Store Inventory</h1>
+        </div>
+        <button onclick="openProductFormModal()" class="bg-stone-900 text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-stone-800 transition shadow-sm flex items-center gap-2 self-start">
+          <span>+ Add New Garment</span>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-stone-200 bg-stone-50 text-xs uppercase tracking-wider text-stone-500">
+                <th class="py-3.5 px-4">Product</th>
+                <th class="py-3.5 px-4">Category / Audience</th>
+                <th class="py-3.5 px-4">Price</th>
+                <th class="py-3.5 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="owner-products-tbody" class="divide-y divide-stone-100 text-sm">
+              <!-- Owner products injected here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Section -->
+    <div id="admin-panel" class="hidden max-w-xl mx-auto">
+      <div class="bg-white p-8 rounded-2xl border border-stone-200 shadow-sm">
+        <p class="text-xs uppercase tracking-widest text-amber-800 font-semibold mb-1">System Administration</p>
+        <h2 class="font-serif text-2xl text-stone-900 mb-6">Create Store Owner Account</h2>
+        <form onsubmit="handleCreateOwner(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Owner Email</label>
+            <input type="email" id="admin-owner-email" required class="w-full border border-stone-300 rounded-lg p-2.5 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Temporary Password (min 8 chars)</label>
+            <input type="password" id="admin-owner-password" minlength="8" required class="w-full border border-stone-300 rounded-lg p-2.5 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Assign to Store</label>
+            <select id="admin-owner-store" required class="w-full border border-stone-300 rounded-lg p-2.5 text-sm bg-white"></select>
+          </div>
+          <button type="submit" class="w-full bg-stone-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-stone-800 transition">
+            Create Owner Account
+          </button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Product Detail Modal -->
+  <div id="detail-modal" class="fixed inset-0 z-50 hidden bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl grid grid-cols-1 md:grid-cols-2 relative fade-in max-h-[90vh] overflow-y-auto">
+      <button onclick="closeModal('detail-modal')" class="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/90 text-stone-800 flex items-center justify-center hover:bg-stone-100 shadow">✕</button>
+      <div class="bg-stone-100 h-72 md:h-full">
+        <img id="detail-img" src="" alt="" class="w-full h-full object-cover">
+      </div>
+      <div class="p-6 sm:p-8 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-2 text-xs text-amber-800 font-semibold uppercase tracking-wider mb-1">
+            <span id="detail-category"></span> • <span id="detail-audience"></span>
+          </div>
+          <h2 id="detail-name" class="font-serif text-2xl text-stone-900 mb-2"></h2>
+          <p id="detail-price" class="text-xl font-semibold text-stone-900 mb-4"></p>
+          <p id="detail-desc" class="text-sm text-stone-600 leading-relaxed mb-5"></p>
+
+          <div class="space-y-3 border-t border-stone-100 pt-4 text-sm">
+            <div><span class="text-stone-400">Colour:</span> <span id="detail-colour" class="font-medium text-stone-800"></span></div>
+            <div><span class="text-stone-400">Materials:</span> <span id="detail-materials" class="font-medium text-stone-800"></span></div>
+            <div>
+              <span class="text-stone-400 block mb-1.5">Available Sizes & Stock:</span>
+              <div id="detail-sizes" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-stone-200 bg-brand-50 -mx-6 -mb-6 sm:-mx-8 sm:-mb-8 p-5">
+          <p class="text-xs uppercase tracking-wider text-stone-400 font-semibold mb-1">Where to Buy</p>
+          <p id="detail-store" class="font-semibold text-stone-900 text-sm"></p>
+          <p id="detail-mall" class="text-xs text-stone-600"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="fixed inset-0 z-50 hidden bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl relative fade-in">
+      <button onclick="closeModal('login-modal')" class="absolute top-4 right-4 text-stone-400 hover:text-stone-800">✕</button>
+      <h2 class="font-serif text-2xl text-stone-900 mb-1">Partner Sign In</h2>
+      <p class="text-sm text-stone-500 mb-6">Access your store inventory or admin console.</p>
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-stone-700 mb-1">Email Address</label>
+          <input type="email" id="login-email" required placeholder="owner@example.com" class="w-full border border-stone-300 rounded-lg p-2.5 text-sm focus:outline-none focus:border-stone-900">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-stone-700 mb-1">Password</label>
+          <input type="password" id="login-password" required class="w-full border border-stone-300 rounded-lg p-2.5 text-sm focus:outline-none focus:border-stone-900">
+        </div>
+        <button type="submit" class="w-full bg-stone-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-stone-800 transition">
+          Sign In
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create / Edit Product Modal (Owner) -->
+  <div id="product-form-modal" class="fixed inset-0 z-50 hidden bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative fade-in max-h-[90vh] overflow-y-auto">
+      <button onclick="closeModal('product-form-modal')" class="absolute top-4 right-4 text-stone-400 hover:text-stone-800">✕</button>
+      <h2 id="product-form-title" class="font-serif text-2xl text-stone-900 mb-5">Add New Garment</h2>
+      <form onsubmit="handleSaveProduct(event)" class="space-y-4">
+        <input type="hidden" id="form-product-id">
+        <div>
+          <label class="block text-xs font-medium text-stone-700 mb-1">Product Name *</label>
+          <input type="text" id="form-name" required class="w-full border border-stone-300 rounded-lg p-2.5 text-sm">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Category *</label>
+            <select id="form-category" required class="w-full border border-stone-300 rounded-lg p-2.5 text-sm bg-white"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Audience *</label>
+            <select id="form-audience" required class="w-full border border-stone-300 rounded-lg p-2.5 text-sm bg-white"></select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Price (KES) *</label>
+            <input type="number" step="0.01" min="1" id="form-price" required class="w-full border border-stone-300 rounded-lg p-2.5 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1">Colour</label>
+            <input type="text" id="form-colour" placeholder="e.g. Emerald Green" class="w-full border border-stone-300 rounded-lg p-2.5 text-sm">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-stone-700 mb-1">Picture Path (relative to API)</label>
+          <input type="text" id="form-picture" placeholder="images/silk_scarf.jpg" class="w-full border border-stone-300 rounded-lg p-2.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-stone-700 mb-1">Description</label>
+          <textarea id="form-desc" rows="3" class="w-full border border-stone-300 rounded-lg p-2.5 text-sm"></textarea>
+        </div>
+        <button type="submit" class="w-full bg-stone-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-stone-800 transition">
+          Save Product
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Manage Stock & Materials Modal (Owner) -->
+  <div id="inventory-modal" class="fixed inset-0 z-50 hidden bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative fade-in max-h-[90vh] overflow-y-auto">
+      <button onclick="closeModal('inventory-modal')" class="absolute top-4 right-4 text-stone-400 hover:text-stone-800">✕</button>
+      <h2 id="inv-modal-title" class="font-serif text-2xl text-stone-900 mb-1">Stock & Materials</h2>
+      <p class="text-xs text-stone-500 mb-5">Update size availability and fabric composition.</p>
+      <input type="hidden" id="inv-product-id">
+
+      <!-- Materials Form -->
+      <div class="mb-6 pb-6 border-b border-stone-200">
+        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-2">Materials</label>
+        <div id="inv-materials-checkboxes" class="grid grid-cols-2 gap-2 mb-3 text-sm"></div>
+        <button onclick="saveMaterials()" class="bg-stone-800 text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-stone-700">
+          Update Materials
+        </button>
+      </div>
+
+      <!-- Stock per Size -->
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-2">Stock Quantities by Size</label>
+        <div id="inv-sizes-list" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT ==================== -->
+  <script>
+    const API_BASE = 'http://localhost:8000';
+    const LIMIT = 12;
+    let currentOffset = 0;
+    let currentUser = null;
+    let lookups = { categories: [], audiences: [], materials: [], sizes: [], malls: [], stores: [] };
+    let searchTimeout = null;
+
+    const FALLBACK_IMG = 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=600&q=80';
+
+    // --- INIT ---
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadLookups();
+      await checkAuth();
+      fetchProducts();
+    });
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const inner = document.getElementById('toast-inner');
+      inner.textContent = msg;
+      inner.className = `px-5 py-3 rounded-lg shadow-xl text-sm font-medium text-white ${isError ? 'bg-red-700' : 'bg-stone-900'}`;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function switchView(view) {
+      ['shop', 'stores', 'dashboard'].forEach(v => {
+        document.getElementById(`view-${v}`).classList.add('hidden');
+        const nav = document.getElementById(`nav-${v}`);
+        if (nav) nav.classList.remove('text-stone-900', 'border-b-2', 'border-stone-900');
+      });
+      document.getElementById(`view-${view}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${view}`);
+      if (activeNav) activeNav.classList.add('text-stone-900', 'border-b-2', 'border-stone-900');
+
+      if (view === 'stores') renderStoresDirectory();
+      if (view === 'dashboard') loadDashboard();
+    }
+
+    // --- LOOKUPS ---
+    async function loadLookups() {
+      try {
+        const [cats, auds, mats, sizes, malls, stores] = await Promise.all([
+          fetch(`${API_BASE}/categories`).then(r => r.json()),
+          fetch(`${API_BASE}/audiences`).then(r => r.json()),
+          fetch(`${API_BASE}/materials`).then(r => r.json()),
+          fetch(`${API_BASE}/sizes`).then(r => r.json()),
+          fetch(`${API_BASE}/malls`).then(r => r.json()),
+          fetch(`${API_BASE}/stores`).then(r => r.json()),
+        ]);
+        lookups = { categories: cats, audiences: auds, materials: mats, sizes, malls, stores };
+
+        populateSelect('filter-category', cats, 'category_id', 'category_name');
+        populateSelect('filter-audience', auds, 'audience_id', 'audience_name');
+        populateSelect('filter-material', mats, 'material_id', 'material_name');
+        populateSelect('filter-size', sizes, 'size_id', 'size_label');
+        populateSelect('filter-mall', malls, 'mall_id', 'mall_name');
+        populateSelect('filter-store', stores, 'store_id', 'store_name');
+
+        // Form selects
+        populateSelect('form-category', cats, 'category_id', 'category_name', false);
+        populateSelect('form-audience', auds, 'audience_id', 'audience_name', false);
+        populateSelect('admin-owner-store', stores, 'store_id', 'store_name', false);
+      } catch (e) {
+        showToast('Could not connect to API at ' + API_BASE, true);
+      }
+    }
+
+    function populateSelect(elId, items, valKey, labelKey, keepFirst = true) {
+      const el = document.getElementById(elId);
+      if (!keepFirst) el.innerHTML = '';
+      items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item[valKey];
+        opt.textContent = item[labelKey];
+        el.appendChild(opt);
+      });
+    }
+
+    // --- PUBLIC PRODUCTS ---
+    function debouncedFetchProducts() {
+      clearTimeout(searchTimeout);
+      currentOffset = 0;
+      searchTimeout = setTimeout(fetchProducts, 300);
+    }
+
+    function resetFilters() {
+      ['filter-search', 'filter-mall', 'filter-store', 'filter-category', 'filter-audience', 'filter-material', 'filter-size', 'filter-min-price', 'filter-max-price']
+        .forEach(id => document.getElementById(id).value = '');
+      currentOffset = 0;
+      fetchProducts();
+    }
+
+    function changePage(dir) {
+      currentOffset = Math.max(0, currentOffset + dir * LIMIT);
+      fetchProducts();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function fetchProducts() {
+      const params = new URLSearchParams({ limit: LIMIT, offset: currentOffset });
+      const map = {
+        search: 'filter-search',
+        mall_id: 'filter-mall',
+        store_id: 'filter-store',
+        category_id: 'filter-category',
+        audience_id: 'filter-audience',
+        material_id: 'filter-material',
+        size_id: 'filter-size',
+        min_price: 'filter-min-price',
+        max_price: 'filter-max-price'
+      };
+      for (const [param, elId] of Object.entries(map)) {
+        const val = document.getElementById(elId).value.trim();
+        if (val) params.append(param, val);
+      }
+
+      const grid = document.getElementById('products-grid');
+      grid.innerHTML = '<div class="col-span-full text-center py-12 text-stone-400">Loading garments...</div>';
+
+      try {
+        const res = await fetch(`${API_BASE}/products?${params.toString()}`);
+        const products = await res.json();
+
+        document.getElementById('results-count').textContent = `Showing ${products.length} item${products.length === 1 ? '' : 's'}`;
+        document.getElementById('page-indicator').textContent = `Page ${Math.floor(currentOffset / LIMIT) + 1}`;
+        document.getElementById('btn-prev').disabled = currentOffset === 0;
+        document.getElementById('btn-next').disabled = products.length < LIMIT;
+
+        if (products.length === 0) {
+          grid.innerHTML = '<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-stone-200 text-stone-500">No clothing items match your filters.</div>';
+          return;
+        }
+
+        grid.innerHTML = products.map(p => {
+          const imgUrl = p.picture_path ? `${API_BASE}/${p.picture_path}` : FALLBACK_IMG;
+          return `
+            <div onclick="openProductDetail(${p.product_id})" class="group cursor-pointer bg-white rounded-2xl border border-stone-200/80 overflow-hidden hover:shadow-lg transition duration-300 flex flex-col">
+              <div class="aspect-[4/5] bg-stone-100 overflow-hidden relative">
+                <img src="${imgUrl}" onerror="this.src='${FALLBACK_IMG}'" alt="${p.product_name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-stone-800 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                  ${p.category_name}
+                </span>
+              </div>
+              <div class="p-4 flex-1 flex flex-col justify-between">
+                <div>
+                  <p class="text-xs text-stone-400 mb-0.5">${p.store_name} • ${p.mall_name}</p>
+                  <h3 class="font-medium text-stone-900 group-hover:text-amber-800 transition line-clamp-1">${p.product_name}</h3>
+                </div>
+                <div class="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between">
+                  <span class="font-semibold text-stone-900">KES ${Number(p.price).toLocaleString()}</span>
+                  <span class="text-xs text-stone-500">${p.audience_name}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        grid.innerHTML = '<div class="col-span-full text-center py-12 text-red-600">Failed to load products.</div>';
+      }
+    }
+
+    async function openProductDetail(productId) {
+      try {
+        const res = await fetch(`${API_BASE}/product/${productId}`);
+        if (!res.ok) throw new Error();
+        const p = await res.json();
+
+        document.getElementById('detail-img').src = p.picture_path ? `${API_BASE}/${p.picture_path}` : FALLBACK_IMG;
+        document.getElementById('detail-img').onerror = function() { this.src = FALLBACK_IMG; };
+        document.getElementById('detail-category').textContent = p.category_name;
+        document.getElementById('detail-audience').textContent = p.audience_name;
+        document.getElementById('detail-name').textContent = p.product_name;
+        document.getElementById('detail-price').textContent = `KES ${Number(p.price).toLocaleString()}`;
+        document.getElementById('detail-desc').textContent = p.description || 'No description provided.';
+        document.getElementById('detail-colour').textContent = p.colour || 'Standard';
+        document.getElementById('detail-materials').textContent = p.materials.length ? p.materials.join(', ') : 'Not specified';
+        document.getElementById('detail-store').textContent = `${p.store_name} (${p.floor_level})`;
+        document.getElementById('detail-mall').textContent = p.mall_name;
+
+        const sizesEl = document.getElementById('detail-sizes');
+        if (p.sizes.length === 0) {
+          sizesEl.innerHTML = '<span class="text-xs text-stone-400">No size inventory listed</span>';
+        } else {
+          sizesEl.innerHTML = p.sizes.map(s => `
+            <span class="px-3 py-1 rounded-lg text-xs font-medium border ${s.quantity_available > 0 ? 'border-stone-800 text-stone-900 bg-stone-50' : 'border-stone-200 text-stone-400 line-through'}">
+              ${s.size_label} (${s.quantity_available})
+            </span>
+          `).join('');
+        }
+        openModal('detail-modal');
+      } catch (e) {
+        showToast('Could not load product details', true);
+      }
+    }
+
+    // --- STORES DIRECTORY ---
+    function renderStoresDirectory() {
+      const grid = document.getElementById('stores-grid');
+      grid.innerHTML = lookups.stores.map(s => `
+        <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-amber-800">${s.mall_name}</span>
+              <span class="text-xs bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full font-medium">${s.product_count} items</span>
+            </div>
+            <h3 class="font-serif text-xl text-stone-900 mb-1">${s.store_name}</h3>
+            <p class="text-xs text-stone-500 mb-4">${s.area || ''} • ${s.floor_level} ${s.shop_number ? `(Shop ${s.shop_number})` : ''}</p>
+            <div class="text-xs text-stone-600 space-y-1">
+              ${s.phone ? `<p>📞 ${s.phone}</p>` : ''}
+              ${s.email ? `<p>✉️ ${s.email}</p>` : ''}
+            </div>
+          </div>
+          <button onclick="filterByStore(${s.store_id})" class="mt-5 w-full py-2 rounded-lg border border-stone-300 text-xs font-semibold text-stone-800 hover:bg-stone-900 hover:text-white transition">
+            Browse Store Collection
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function filterByStore(storeId) {
+      resetFilters();
+      document.getElementById('filter-store').value = storeId;
+      switchView('shop');
+      fetchProducts();
+    }
+
+    // --- AUTHENTICATION ---
+    async function handleLogin(e) {
+      e.preventDefault();
+      const formData = new URLSearchParams();
+      formData.append('username', document.getElementById('login-email').value);
+      formData.append('password', document.getElementById('login-password').value);
+
+      try {
+        const res = await fetch(`${API_BASE}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Login failed');
+        }
+        const data = await res.json();
+        localStorage.setItem('token', data.access_token);
+        closeModal('login-modal');
+        await checkAuth();
+        showToast('Signed in successfully');
+        switchView('dashboard');
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function checkAuth() {
+      const token = localStorage.getItem('token');
+      if (!token) return updateAuthUI(null);
+
+      try {
+        const res = await fetch(`${API_BASE}/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error();
+        const user = await res.json();
+        updateAuthUI(user);
+      } catch {
+        localStorage.removeItem('token');
+        updateAuthUI(null);
+      }
+    }
+
+    function updateAuthUI(user) {
+      currentUser = user;
+      const btnLogin = document.getElementById('btn-open-login');
+      const badge = document.getElementById('auth-user-badge');
+      const navDash = document.getElementById('nav-dashboard');
+
+      if (user) {
+        btnLogin.classList.add('hidden');
+        badge.classList.remove('hidden');
+        badge.classList.add('flex');
+        navDash.classList.remove('hidden');
+        document.getElementById('user-role-pill').textContent = `${user.role} • ${user.email}`;
+      } else {
+        btnLogin.classList.remove('hidden');
+        badge.classList.add('hidden');
+        badge.classList.remove('flex');
+        navDash.classList.add('hidden');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      updateAuthUI(null);
+      switchView('shop');
+      showToast('Signed out');
+    }
+
+    function authHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      };
+    }
+
+    // --- DASHBOARD (OWNER & ADMIN) ---
+    async function loadDashboard() {
+      if (!currentUser) return switchView('shop');
+      document.getElementById('owner-panel').classList.add('hidden');
+      document.getElementById('admin-panel').classList.add('hidden');
+
+      if (currentUser.role === 'owner') {
+        document.getElementById('owner-panel').classList.remove('hidden');
+        const store = lookups.stores.find(s => s.store_id === currentUser.store_id);
+        if (store) document.getElementById('owner-store-title').textContent = `${store.store_name} — Inventory`;
+        fetchOwnerProducts();
+      } else if (currentUser.role === 'admin') {
+        document.getElementById('admin-panel').classList.remove('hidden');
+      }
+    }
+
+    async function fetchOwnerProducts() {
+      const tbody = document.getElementById('owner-products-tbody');
+      try {
+        const res = await fetch(`${API_BASE}/my/products`, { headers: authHeaders() });
+        const products = await res.json();
+        if (products.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="py-8 text-center text-stone-400">Your store has no products yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = products.map(p => `
+          <tr class="hover:bg-stone-50/80">
+            <td class="py-3.5 px-4 flex items-center gap-3">
+              <img src="${p.picture_path ? API_BASE + '/' + p.picture_path : FALLBACK_IMG}" onerror="this.src='${FALLBACK_IMG}'" class="w-10 h-12 rounded object-cover bg-stone-100">
+              <div>
+                <p class="font-medium text-stone-900">${p.product_name}</p>
+                <p class="text-xs text-stone-400">${p.colour || 'No colour specified'}</p>
+              </div>
+            </td>
+            <td class="py-3.5 px-4 text-stone-600">${p.category_name} • ${p.audience_name}</td>
+            <td class="py-3.5 px-4 font-medium text-stone-900">KES ${Number(p.price).toLocaleString()}</td>
+            <td class="py-3.5 px-4 text-right space-x-2">
+              <button onclick="openInventoryModal(${p.product_id})" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100">
+                Stock & Materials
+              </button>
+              <button onclick="openProductFormModal(${p.product_id})" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-300 hover:bg-stone-100">
+                Edit
+              </button>
+              <button onclick="deleteOwnerProduct(${p.product_id})" class="px-3 py-1.5 text-xs font-medium rounded-lg text-red-600 hover:bg-red-50">
+                Delete
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        showToast('Failed to load your products', true);
+      }
+    }
+
+    async function openProductFormModal(productId = null) {
+      document.getElementById('form-product-id').value = productId || '';
+      document.getElementById('product-form-title').textContent = productId ? 'Edit Garment' : 'Add New Garment';
+
+      if (productId) {
+        const res = await fetch(`${API_BASE}/product/${productId}`);
+        const p = await res.json();
+        document.getElementById('form-name').value = p.product_name;
+        document.getElementById('form-price').value = p.price;
+        document.getElementById('form-colour').value = p.colour || '';
+        document.getElementById('form-picture').value = p.picture_path || '';
+        document.getElementById('form-desc').value = p.description || '';
+        const cat = lookups.categories.find(c => c.category_name === p.category_name);
+        const aud = lookups.audiences.find(a => a.audience_name === p.audience_name);
+        if (cat) document.getElementById('form-category').value = cat.category_id;
+        if (aud) document.getElementById('form-audience').value = aud.audience_id;
+      } else {
+        ['form-name', 'form-price', 'form-colour', 'form-picture', 'form-desc'].forEach(id => document.getElementById(id).value = '');
+      }
+      openModal('product-form-modal');
+    }
+
+    async function handleSaveProduct(e) {
+      e.preventDefault();
+      const id = document.getElementById('form-product-id').value;
+      const payload = {
+        product_name: document.getElementById('form-name').value,
+        category_id: Number(document.getElementById('form-category').value),
+        audience_id: Number(document.getElementById('form-audience').value),
+        price: Number(document.getElementById('form-price').value),
+        colour: document.getElementById('form-colour').value || null,
+        picture_path: document.getElementById('form-picture').value || null,
+        description: document.getElementById('form-desc').value || null,
+      };
+
+      const url = id ? `${API_BASE}/products/${id}` : `${API_BASE}/products`;
+      const method = id ? 'PATCH' : 'POST';
+
+      try {
+        const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('Save failed');
+        closeModal('product-form-modal');
+        showToast(id ? 'Product updated' : 'Product created');
+        fetchOwnerProducts();
+        fetchProducts();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function deleteOwnerProduct(id) {
+      if (!confirm('Delete this garment permanently?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE', headers: authHeaders() });
+        if (!res.ok) throw new Error('Delete failed (check /products/{id} route in main.py)');
+        showToast('Product deleted');
+        fetchOwnerProducts();
+        fetchProducts();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    // --- STOCK & MATERIALS MANAGEMENT ---
+    async function openInventoryModal(productId) {
+      document.getElementById('inv-product-id').value = productId;
+      const res = await fetch(`${API_BASE}/product/${productId}`);
+      const p = await res.json();
+      document.getElementById('inv-modal-title').textContent = p.product_name;
+
+      // Render Materials Checkboxes
+      const matContainer = document.getElementById('inv-materials-checkboxes');
+      matContainer.innerHTML = lookups.materials.map(m => {
+        const checked = p.materials.includes(m.material_name) ? 'checked' : '';
+        return `
+          <label class="flex items-center gap-2 p-2 rounded border border-stone-200 cursor-pointer hover:bg-stone-50">
+            <input type="checkbox" name="mat-cb" value="${m.material_id}" ${checked} class="rounded text-stone-900">
+            <span>${m.material_name}</span>
+          </label>
+        `;
+      }).join('');
+
+      // Render Size Stock Inputs
+      const sizeContainer = document.getElementById('inv-sizes-list');
+      sizeContainer.innerHTML = lookups.sizes.map(s => {
+        const existing = p.sizes.find(ps => ps.size_label === s.size_label);
+        const qty = existing ? existing.quantity_available : 0;
+        return `
+          <div class="flex items-center justify-between bg-stone-50 p-2.5 rounded-lg border border-stone-200">
+            <span class="font-medium text-sm w-16">${s.size_label}</span>
+            <div class="flex items-center gap-2">
+              <input type="number" min="0" id="stock-size-${s.size_id}" value="${qty}" class="w-24 border border-stone-300 rounded px-2.5 py-1 text-sm bg-white">
+              <button onclick="updateSizeStock(${productId}, ${s.size_id})" class="px-3 py-1 bg-stone-900 text-white text-xs rounded hover:bg-stone-700">
+                Save
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      openModal('inventory-modal');
+    }
+
+    async function saveMaterials() {
+      const productId = document.getElementById('inv-product-id').value;
+      const selected = Array.from(document.querySelectorAll('input[name="mat-cb"]:checked')).map(cb => Number(cb.value));
+
+      try {
+        const res = await fetch(`${API_BASE}/products/${productId}/materials`, {
+          method: 'PUT',
+          headers: authHeaders(),
+          body: JSON.stringify({ material_id: selected })
+        });
+        if (!res.ok) throw new Error('Failed to update materials');
+        showToast('Materials updated');
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function updateSizeStock(productId, sizeId) {
+      const qty = Number(document.getElementById(`stock-size-${sizeId}`).value);
+      try {
+        const res = await fetch(`${API_BASE}/products/${productId}/sizes/${sizeId}`, {
+          method: 'PUT',
+          headers: authHeaders(),
+          body: JSON.stringify({ quantity_available: qty })
+        });
+        if (!res.ok) throw new Error('Failed to update stock');
+        showToast('Stock updated');
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    // --- ADMIN: CREATE OWNER ---
+    async function handleCreateOwner(e) {
+      e.preventDefault();
+      const payload = {
+        email: document.getElementById('admin-owner-email').value,
+        password: document.getElementById('admin-owner-password').value,
+        store_id: Number(document.getElementById('admin-owner-store').value)
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/owners`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to create owner');
+        showToast(`Created owner account for ${data.email}`);
+        e.target.reset();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
