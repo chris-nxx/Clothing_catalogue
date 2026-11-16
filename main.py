@@ -17,8 +17,13 @@ import jwt
 app = FastAPI()
 app.mount("/images", StaticFiles(directory="images"), name="images")
 load_dotenv()
-allowed_origins = os.getenv("ALLOWED_ORIGINS")
-app.add_middleware(CORSMiddleware, allow_origins=[os.getenv(allowed_origins)], allow_methods=["GET, POST, PUT, PATCH, DELETE, OPTIONS"], allow_headers=["Authorization, Content-Type"])
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 def get_connection():
@@ -506,7 +511,7 @@ def create_product(product: ProductCreate, user: dict = Depends(get_current_user
 
     return get_product_detail(new_id)
 
-@app.delete("/products{product_id}", status_code=203)
+@app.delete("/products/{product_id}", status_code=203)
 def delete_product(product_id: int, user: dict = Depends(get_current_user)):
     check_product_owner(product_id, user)
     conn = get_connection()
@@ -633,5 +638,3 @@ def create_owner_account(owner: OwnerCreate,admin: dict = Depends(require_admin)
         conn.close()
 
     return new_owner
-
-
