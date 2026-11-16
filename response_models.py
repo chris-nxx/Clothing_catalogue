@@ -75,3 +75,14 @@ class Store(BaseModel):
     email: str | None = None
     area: str | None = None
     product_count: int
+
+class OwnerCreate(BaseModel):
+    email: str
+    password: str = Field(min_length=8)
+    store_id: int
+
+class UserOut(BaseModel):
+    user_id:int
+    role: str
+    email: str
+    store_id: int | None = None

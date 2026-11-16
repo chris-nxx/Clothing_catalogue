@@ -18,5 +18,4 @@ try:
     conn.commit()
 
 finally:
-    cursor.close()
     conn.close()

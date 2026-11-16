@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request,Query
 from dotenv import load_dotenv
 import os
 import bcrypt
@@ -8,15 +8,17 @@ import psycopg2.errors
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
-from response_models import ProductDetail, ProductSummary,ProductCreate,StockUpdate,ProductUpdate,MaterialsUpdate, Category, Audience, Material, Size, Mall,Store
+from response_models import (ProductDetail, ProductSummary,ProductCreate,StockUpdate,ProductUpdate,
+                             MaterialsUpdate, Category, Audience, Material, Size, Mall,Store,OwnerCreate,UserOut)
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from datetime import timezone,timedelta,datetime
 import jwt
 
 app = FastAPI()
 app.mount("/images", StaticFiles(directory="images"), name="images")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 load_dotenv()
+allowed_origins = os.getenv("ALLOWED_ORIGINS")
+app.add_middleware(CORSMiddleware, allow_origins=[os.getenv(allowed_origins)], allow_methods=["GET, POST, PUT, PATCH, DELETE, OPTIONS"], allow_headers=["Authorization, Content-Type"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 def get_connection():
@@ -138,6 +140,19 @@ def check_product_owner(product_id, user):
 
     return None
 
+def require_admin(user: dict = Depends(get_current_user)):
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admins only")
+
+    return user
+
+@app.exception_handler(psycopg2.errors.UniqueViolation)
+def foreign_key_handler(request: Request, exc: psycopg2.errors.UniqueViolation):
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "Email already in use"}
+    )
+
 @app.exception_handler(psycopg2.errors.ForeignKeyViolation)
 def foreign_key_handler(request: Request, exc: psycopg2.errors.ForeignKeyViolation):
     return JSONResponse(
@@ -146,7 +161,9 @@ def foreign_key_handler(request: Request, exc: psycopg2.errors.ForeignKeyViolati
     )
 
 @app.get("/products", response_model=list[ProductSummary])
-def get_products(max_price: float|None = None,
+def get_products(limit: int = Query(20, ge=1, le=100),
+                 offset: int = Query(0, ge=0),
+                 max_price: float|None = None,
                  category_id:int|None = None,
                  audience_id:int|None = None,
                  store_id:int|None = None,
@@ -206,6 +223,8 @@ def get_products(max_price: float|None = None,
         parameters.append(pattern)
         parameters.append(pattern)
 
+    parameters.append(limit)
+    parameters.append(offset)
     where_text = ""
     if conditions:
         where_text = "WHERE " + " AND ".join(conditions)
@@ -226,6 +245,7 @@ def get_products(max_price: float|None = None,
                     JOIN audiences a ON a.audience_id = p.audience_id
                     {where_text}
                     ORDER BY p.product_id
+                    LIMIT %s OFFSET %s
                    '''
                    , tuple(parameters))
 
@@ -592,5 +612,26 @@ def set_material(product_id:int, product:MaterialsUpdate,user: dict = Depends(ge
         conn.close()
 
     return get_product_detail(product_id)
+
+@app.post("/admin/owners", response_model=UserOut, status_code=201)
+def create_owner_account(owner: OwnerCreate,admin: dict = Depends(require_admin)):
+
+    hash_text = bcrypt.hashpw(owner.password.encode(), bcrypt.gensalt()).decode()
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute('''
+                        INSERT INTO users (email, password_hash, role, store_id)
+                        VALUES (%s, %s, 'owner', %s)
+                        RETURNING user_id, email, role, store_id''',
+                       (owner.email,hash_text,owner.store_id))
+        new_owner = cursor.fetchone()
+
+        conn.commit()
+    finally:
+        conn.close()
+
+    return new_owner
 
 
