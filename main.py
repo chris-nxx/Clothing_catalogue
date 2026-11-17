@@ -294,7 +294,7 @@ def get_my_products(user: dict = Depends(get_current_user)):
     return my_products
 
 @app.get("/products/{product_id}", response_model=ProductDetail)
-def get_product(product_id):
+def get_product(product_id:int):
 
     product = get_product_detail(product_id)
 
@@ -511,7 +511,7 @@ def create_product(product: ProductCreate, user: dict = Depends(get_current_user
 
     return get_product_detail(new_id)
 
-@app.delete("/products/{product_id}", status_code=203)
+@app.delete("/products/{product_id}", status_code=204)
 def delete_product(product_id: int, user: dict = Depends(get_current_user)):
     check_product_owner(product_id, user)
     conn = get_connection()
@@ -562,7 +562,7 @@ def update_product(product_id:int, product:ProductUpdate, user: dict = Depends(g
 
     changes = product.model_dump(exclude_unset=True)
 
-    if changes is None:
+    if not changes:
         raise HTTPException(status_code=400, detail="No fields to update")
 
     set_parts = []

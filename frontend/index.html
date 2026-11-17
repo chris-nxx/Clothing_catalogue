@@ -24,6 +24,7 @@
     <!-- SHOP -->
     <section id="view-shop" class="view">
       <div class="filters" id="filters">
+        <div class="field search"><label>Search</label><input id="search" type="search" placeholder="e.g. scarf"></div>
         <div class="field price"><label>Min price</label><input id="min_price" type="number" min="0" placeholder="0"></div>
         <div class="field price"><label>Max price</label><input id="max_price" type="number" min="0" placeholder="any"></div>
         <button id="apply" class="btn">Apply</button>
@@ -58,20 +59,36 @@
 
       <div id="dash" hidden>
         <div class="dash-head">
-          <h2>My products</h2>
+          <h2 id="dash-title">My products</h2>
           <div><span id="who" class="muted"></span> <button id="logout" class="btn ghost">Log out</button></div>
         </div>
-        <p id="dash-msg" class="msg"></p>
-        <div id="mine" class="table"></div>
 
+        <!-- owner tools -->
+        <div id="owner-tools">
+          <details class="panel" id="add-box">
+            <summary>+ Add a product</summary>
+            <form id="add-form" class="form-grid">
+              <div class="field"><label>Name</label><input id="a-name" required></div>
+              <div class="field"><label>Price (KSh)</label><input id="a-price" type="number" min="1" step="any" required></div>
+              <div class="field"><label>Category</label><select id="a-category" required></select></div>
+              <div class="field"><label>Audience</label><select id="a-audience" required></select></div>
+              <div class="field"><label>Colour</label><input id="a-colour"></div>
+              <div class="field"><label>Picture path</label><input id="a-pic" placeholder="images/my_item.jpg"></div>
+              <div class="field wide"><label>Description</label><input id="a-desc"></div>
+              <div class="wide"><button class="btn" type="submit">Add product</button></div>
+            </form>
+          </details>
+          <div id="mine" class="table"></div>
+        </div>
+
+        <!-- admin tools -->
         <div id="admin-box" class="panel narrow" hidden>
-          <h3>Admin: create an owner login</h3>
+          <h3>Create an owner login</h3>
           <form id="owner-form">
             <div class="field"><label>Owner email</label><input id="o-email" type="email" required></div>
             <div class="field"><label>Password</label><input id="o-pass" type="password" required></div>
-            <div class="field"><label>Store id</label><input id="o-store" type="number" min="1" required></div>
+            <div class="field"><label>Store</label><select id="o-store" required></select></div>
             <button class="btn" type="submit">Create owner</button>
-            <p id="owner-msg" class="msg"></p>
           </form>
         </div>
       </div>
