@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mall Threads – Clothing Marketplace</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap bar">
+      <a class="brand" href="#" data-view="shop">Mall Threads</a>
+      <nav>
+        <button class="tab active" data-view="shop">Shop</button>
+        <button class="tab" data-view="stores">Stores</button>
+        <button class="tab" data-view="owner">Owner login</button>
+      </nav>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <main class="wrap">
+    <!-- SHOP -->
+    <section id="view-shop" class="view">
+      <div class="filters" id="filters">
+        <div class="field price"><label>Min price</label><input id="min_price" type="number" min="0" placeholder="0"></div>
+        <div class="field price"><label>Max price</label><input id="max_price" type="number" min="0" placeholder="any"></div>
+        <button id="apply" class="btn">Apply</button>
+        <button id="reset" class="btn ghost">Reset</button>
+      </div>
+      <p id="count" class="muted"></p>
+      <div id="grid" class="grid"></div>
+      <div class="pager">
+        <button id="prev" class="btn ghost">← Previous</button>
+        <span id="page" class="muted"></span>
+        <button id="next" class="btn ghost">Next →</button>
+      </div>
+    </section>
+
+    <!-- STORES -->
+    <section id="view-stores" class="view" hidden>
+      <h2>Stores</h2>
+      <div id="stores" class="grid stores"></div>
+    </section>
+
+    <!-- OWNER -->
+    <section id="view-owner" class="view" hidden>
+      <div id="login-box" class="panel narrow">
+        <h2>Store owner login</h2>
+        <form id="login-form">
+          <div class="field"><label>Email</label><input id="email" type="email" required></div>
+          <div class="field"><label>Password</label><input id="password" type="password" required></div>
+          <button class="btn" type="submit">Log in</button>
+          <p id="login-msg" class="msg"></p>
+        </form>
+      </div>
+
+      <div id="dash" hidden>
+        <div class="dash-head">
+          <h2>My products</h2>
+          <div><span id="who" class="muted"></span> <button id="logout" class="btn ghost">Log out</button></div>
+        </div>
+        <p id="dash-msg" class="msg"></p>
+        <div id="mine" class="table"></div>
+
+        <div id="admin-box" class="panel narrow" hidden>
+          <h3>Admin: create an owner login</h3>
+          <form id="owner-form">
+            <div class="field"><label>Owner email</label><input id="o-email" type="email" required></div>
+            <div class="field"><label>Password</label><input id="o-pass" type="password" required></div>
+            <div class="field"><label>Store id</label><input id="o-store" type="number" min="1" required></div>
+            <button class="btn" type="submit">Create owner</button>
+            <p id="owner-msg" class="msg"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- PRODUCT DETAIL -->
+  <div id="modal" class="modal" hidden>
+    <div class="sheet">
+      <button id="close" class="x" aria-label="Close">×</button>
+      <div id="detail"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

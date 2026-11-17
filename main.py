@@ -293,7 +293,7 @@ def get_my_products(user: dict = Depends(get_current_user)):
 
     return my_products
 
-@app.get("/product/{product_id}", response_model=ProductDetail)
+@app.get("/products/{product_id}", response_model=ProductDetail)
 def get_product(product_id):
 
     product = get_product_detail(product_id)
