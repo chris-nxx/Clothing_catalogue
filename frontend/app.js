@@ -99,11 +99,11 @@ function readFilters() {
 }
 
 function thumb(p) {
-  const box = el("div", { class: "thumb" }, p.product_name[0].toUpperCase());
+  const box = el("div", { class: "thumb" }, el("span", { class: "ph" }, p.product_name[0].toUpperCase()));
   if (p.picture_path) {
-    const img = el("img", { src: BASE_URL + "/" + p.picture_path, alt: p.product_name, loading: "lazy" });
-    img.addEventListener("load", () => { box.textContent = ""; box.append(img); });
-    // if the file doesn't exist yet, the letter placeholder stays
+    const img = el("img", { src: BASE_URL + "/" + p.picture_path, alt: p.product_name });
+    img.addEventListener("error", () => img.remove());   // no file yet: the letter placeholder stays
+    box.append(img);
   }
   return box;
 }

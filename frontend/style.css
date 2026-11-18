@@ -100,3 +100,7 @@ details.panel{margin-bottom:14px}
 
 [hidden]{display:none !important}
 .stock-grid .field{min-width:0}
+.thumb{position:relative}
+.thumb .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.thumb img{position:absolute;inset:0;background:var(--card)}
+.detail .thumb{position:relative;min-height:320px}
